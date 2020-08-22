@@ -4,15 +4,24 @@ from django.http import Http404
 
 from . models import Topic, Entry
 from . forms import TopicForm, EntryForm
+from django.db.models import Q
 
 def index(request):
     """The home page for Learning Log."""
-    return render(request, 'learning_logs/index.html')
+    print(request.user)
+    if request.user.is_authenticated == True:
+        last_topic = Topic.objects.filter(Q(owner=request.user) | Q(public=True)).last()
+        context = {'last_topic': last_topic}
+        return render(request, 'learning_logs/index.html', context)
+    else:
+        public_topics = Topic.objects.filter(public=True).order_by('-id')[:3]
+        context = {'public_topics': public_topics}
+        return render(request, 'learning_logs/index.html', context)
 
 @login_required
 def topics(request):
-    """Show all topics."""
-    topics = Topic.objects.filter(owner=request.user).order_by('date_added')
+    """Show user's and public topics"""
+    topics = Topic.objects.filter(Q(owner=request.user) | Q(public=True)).order_by('date_added')
     context = {'topics': topics}
     return render(request, 'learning_logs/topics.html', context)
 
@@ -20,8 +29,8 @@ def topics(request):
 def topic(request, topic_id):
     """Show a single topic and all its entries."""
     topic = get_object_or_404(Topic, id=topic_id)
-    # Make sure the topic belongs to the current user.
-    check_topic_owner(request, topic)
+
+    check_topic_visibility(request, topic)
 
     entries = topic.entry_set.order_by('date_added')
     context = {'topic': topic, 'entries': entries}
@@ -39,6 +48,8 @@ def new_topic(request):
         if form.is_valid():
             new_topic = form.save(commit=False)
             new_topic.owner = request.user
+            new_topic.public = form.cleaned_data['public']
+            print(new_topic.public)
             check_topic_owner(request, new_topic)
             new_topic.save()
             return redirect('learning_logs:topics')
@@ -51,7 +62,7 @@ def new_topic(request):
 def new_entry(request, topic_id):
     """Add a new entry for a particular topic."""
     topic = get_object_or_404(Topic, id=topic_id)
-    check_topic_owner(request, topic)
+    check_topic_visibility(request, topic)
     if request.method != 'POST':
         #No data submitted; create a blank form.
         form = EntryForm()
@@ -60,6 +71,7 @@ def new_entry(request, topic_id):
         form = EntryForm(data=request.POST)
         if form.is_valid():
             new_entry = form.save(commit=False)
+            new_entry.owner = request.user
             new_entry.topic = topic
             new_entry.save()
             return redirect('learning_logs:topic', topic_id=topic_id)
@@ -70,10 +82,11 @@ def new_entry(request, topic_id):
 @login_required
 def edit_entry(request, entry_id):
     """Edit an existing entry"""
-    entry = get_object_or_404(Topic, id=entry_id)
+    entry = get_object_or_404(Entry, id=entry_id)
     topic = entry.topic
-    check_topic_owner(request, topic)
-
+    
+    check_entry_owner(request, entry)
+    
     if request.method != 'POST':
         # Initial request; pre-fill form with the current entry.
         form = EntryForm(instance=entry)
@@ -87,9 +100,18 @@ def edit_entry(request, entry_id):
     context = {'entry': entry, 'topic': topic, 'form': form}
     return render(request, 'learning_logs/edit_entry.html', context)
 
-
-
 def check_topic_owner(request, topic):
     """ Check if the topic belongs to the current user."""
     if topic.owner != request.user:
+        raise Http404
+
+def check_topic_visibility(request, topic):
+    """ Check if the topic is not public"""
+    if topic.public != True:
+        # Make sure the topic belongs to the current user
+        check_topic_owner(request, topic)
+
+def check_entry_owner(request, entry):
+    """ Check if the entry belongs to the current user."""
+    if entry.owner != request.user:
         raise Http404

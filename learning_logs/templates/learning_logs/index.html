@@ -3,10 +3,71 @@
 {% block page_header %}
 <div class="jumbotron">
     <h1 class="display-3">Track your learning</h1>
+
+    <p class="lead">Make your own Learning Log, and keep a list of the
+        topics you're learning about. Whenever you learn something new
+        about a topic, make an entry summarizing what you've learned.</p>
+        <hr class="my-4">
+        <p>It is free and it always will be for free.</p>
+    {% if user.is_authenticated %}
+    <a class="btn btn-lg btn-primary" href="{% url 'learning_logs:topics'%}" role="button">Start Learning &raquo;</a>
+    {% else %}
+    <a class="btn btn-lg btn-primary" href="{% url 'users:register' %}" role="button">Register &raquo;</a>
+    {% endif %}
 </div>
-<p class="lead">Make your own Learning Log, and keep a list of the
-    topics you're learning about. Whenever you learn something new
-    about a topic, make an entry summarizing what you've learned.</p>
-<a class="btn btn-lg btn-primary" href="{% url 'users:register' %}" role="button">Register &raquo;</a>
-</div>
+
+<div class="card">
+    <div class="card-header">
+      Quote of the day.
+    </div>
+    <div class="card-body">
+      <blockquote class="blockquote mb-0">
+        <p> ‘Never let formal education get in the way of your learning.’</p>
+        <footer class="blockquote-footer"><cite title="Source Title">Mark Twain</cite></footer>
+      </blockquote>
+    </div>
+  </div>
+
+    {% if user.is_authenticated %}
+  
+    <div class="row mt-5">
+
+        <div class="col-sm-6">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Got interested in new subject?</h5>
+              <p class="card-text">Add new topic to save the information.</p>
+              <a href="{% url 'learning_logs:new_topic' %}" class="btn btn-primary">Add new topic</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-sm-6">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">{{ last_topic }}</h5>
+              <p class="card-text">The last subject was added by {{ last_topic.owner }}</p>
+              <a href="{% url 'learning_logs:topic' last_topic.id %}" class="btn btn-primary">Check it out!</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+  </div>
+  {% else %}
+
+  <div class="card mt-5 mx-auto">
+    <div class="card-header">
+      You can check out public subjects such us:
+    </div>
+    {% for public_topic in public_topics %}
+    <ul class="list-group list-group-flush">
+      <li class="list-group-item">{{ public_topic }}</li>
+      {% empty %}
+      <li class="list-group-item">No topics yet.</li>
+    </ul>
+    {% endfor %}
+  </div>
+
+  {% endif %}
 {% endblock page_header %}
