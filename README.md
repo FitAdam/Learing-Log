@@ -4,6 +4,12 @@ Learning Log is a Djang Web-App that allows users to
 log the topics they're interested in and make journal entries as
 they learn about each topic.
 
+# Live Version
+
+To see an online version go to:
+
+[Learning Log 2021](https://learning-log-2021.herokuapp.com/)
+
 # Instalation
 
 1. Create virtual env.
